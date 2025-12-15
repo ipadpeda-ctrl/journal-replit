@@ -4,7 +4,6 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import Header, { Tab } from "@/components/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -285,7 +284,8 @@ export default function AdminDashboard() {
                             <TableCell>
                               {u.role !== "super_admin" && (
                                 <Select
-                                  value={u.role}
+                                  // FIX: Fallback a "user" se il ruolo è vuoto per evitare crash
+                                  value={u.role || "user"}
                                   onValueChange={(role) =>
                                     updateRoleMutation.mutate({ userId: u.id, role })
                                   }
@@ -311,8 +311,10 @@ export default function AdminDashboard() {
             </Card>
           </TabsContent>
 
+          {/* ... resto del codice invariato ... */}
           <TabsContent value="trades">
-            <Card>
+            {/* ... codice tab trades ... */}
+             <Card>
               <CardHeader>
                 <CardTitle>Tutte le Operazioni</CardTitle>
               </CardHeader>
@@ -378,7 +380,8 @@ export default function AdminDashboard() {
           </TabsContent>
 
           <TabsContent value="leaderboard">
-            <div className="grid lg:grid-cols-2 gap-4">
+            {/* ... codice tab leaderboard ... */}
+             <div className="grid lg:grid-cols-2 gap-4">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2">
                   <CardTitle className="flex items-center gap-2">
