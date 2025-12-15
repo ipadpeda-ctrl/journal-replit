@@ -16,7 +16,7 @@ export default defineConfig({
   },
   root: "client",
   build: {
-    outDir: "../dist",
+    outDir: "../dist/public", // <--- QUESTA è la modifica fondamentale
     emptyOutDir: true,
   },
 });
