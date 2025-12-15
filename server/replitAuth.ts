@@ -1,6 +1,6 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
-import { type Express } from "express";
+import { type Express, type Request, type Response, type NextFunction } from "express";
 import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
@@ -9,10 +9,9 @@ import { User as SelectUser } from "@shared/schema";
 
 const scryptAsync = promisify(scrypt);
 
-// Sistema di hashing sicuro per le password
 async function hashPassword(password: string) {
   const salt = randomBytes(16).toString("hex");
-  const buf = (await scryptAsync(password,HZ, 64)) as Buffer;
+  const buf = (await scryptAsync(password, salt, 64)) as Buffer;
   return `${buf.toString("hex")}.${salt}`;
 }
 
@@ -24,7 +23,6 @@ async function comparePasswords(supplied: string, stored: string) {
 }
 
 export function setupAuth(app: Express) {
-  // Configurazione della sessione sicura
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || "chiave-segreta-fallback",
     resave: false,
@@ -44,7 +42,6 @@ export function setupAuth(app: Express) {
   app.use(passport.initialize());
   app.use(passport.session());
 
-  // Strategia di Login Locale (Username & Password)
   passport.use(
     new LocalStrategy(async (username, password, done) => {
       try {
@@ -75,9 +72,8 @@ export function setupAuth(app: Express) {
     }
   });
 
-  // --- ROUTE DI AUTENTICAZIONE REALI ---
+  // --- ROUTE ---
 
-  // 1. REGISTRAZIONE UTENTE
   app.post("/api/register", async (req, res, next) => {
     try {
       const existingUser = await storage.getUserByUsername(req.body.username);
@@ -89,7 +85,7 @@ export function setupAuth(app: Express) {
       const user = await storage.createUser({
         ...req.body,
         password: hashedPassword,
-        role: "user", // Ruolo di default
+        role: "user",
       });
 
       req.login(user, (err) => {
@@ -101,12 +97,10 @@ export function setupAuth(app: Express) {
     }
   });
 
-  // 2. LOGIN
   app.post("/api/login", passport.authenticate("local"), (req, res) => {
     res.status(200).json(req.user);
   });
 
-  // 3. LOGOUT
   app.post("/api/logout", (req, res, next) => {
     req.logout((err) => {
       if (err) return next(err);
@@ -114,11 +108,18 @@ export function setupAuth(app: Express) {
     });
   });
 
-  // 4. GET USER (Chi sono io?)
   app.get("/api/user", (req, res) => {
     if (!req.isAuthenticated()) {
       return res.sendStatus(401);
     }
     res.json(req.user);
   });
+}
+
+// QUESTA È LA FUNZIONE CHE MANCAVA!
+export function isAuthenticated(req: Request,HZ: Response, next: NextFunction) {
+  if (req.isAuthenticated()) {
+    return next();
+  }
+  res.status(401).json({ message: "Non autorizzato" });
 }
