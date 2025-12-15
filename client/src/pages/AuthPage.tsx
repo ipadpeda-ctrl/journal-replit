@@ -36,8 +36,14 @@ export default function AuthPage() {
         description: isLogin ? "Benvenuto!" : "Account creato con successo!",
       });
 
+      // 1. Aggiorna lo stato dell'utente ricaricando la query
       await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-      setLocation("/");
+      
+      // 2. MODIFICA FONDAMENTALE:
+      // Invece di usare setLocation("/"), usiamo window.location.href.
+      // Questo forza un ricaricamento reale della pagina, assicurando che il browser
+      // legga e invii correttamente il cookie di sessione appena ricevuto.
+      window.location.href = "/";
       
     } catch (error: any) {
       toast({
