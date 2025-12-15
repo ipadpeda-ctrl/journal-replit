@@ -16,7 +16,7 @@ export function getSession() {
   });
 
   return session({
-    secret: process.env.SESSION_SECRET || "chiave-segreta-fallback",
+    secret: process.env.SESSION_SECRET || "chiave-di-riserva-super-segreta",
     store: sessionStore,
     resave: false,
     saveUninitialized: false,
@@ -28,22 +28,25 @@ export function getSession() {
   });
 }
 
-// Funzione principale di setup (Semplificata per evitare crash)
+// Funzione principale di setup (VERSINE SICURA - NO CRASH)
 export async function setupAuth(app: Express) {
+  // Configura i proxy per Render
   app.set("trust proxy", 1);
+
+  // Avvia la sessione
   app.use(getSession());
   app.use(passport.initialize());
   app.use(passport.session());
 
-  // Serializzazione utente base
+  // Serializzazione utente standard
   passport.serializeUser((user, done) => done(null, user));
   passport.deserializeUser((user: any, done) => done(null, user));
 
-  console.log("Auth system initialized (Replit Auth disabled for external hosting)");
+  console.log("Sistema di Auth avviato in modalità ESTERNA (Replit Auth disabilitato).");
 
-  // Endpoint di login fittizi per non rompere il frontend
+  // Endpoint finti per non rompere il frontend se clicchi login
   app.get("/api/login", (req, res) => {
-    res.status(501).send("Login non configurato. Implementare Google/Email Auth.");
+    res.status(200).send("Login disabilitato su Render. Il sito è visibile.");
   });
 
   app.get("/api/logout", (req, res) => {
@@ -53,15 +56,9 @@ export async function setupAuth(app: Express) {
   });
 }
 
-// Middleware di protezione (Bypassa il controllo se non c'è auth configurata)
+// Middleware che lascia passare TUTTI (per vedere il sito)
 export const isAuthenticated: RequestHandler = (req, res, next) => {
-  // In questa modalità "sicura", permettiamo l'accesso o blocchiamo tutto.
-  // Per ora lasciamo passare o restituiamo 401 se vuoi bloccare.
-  // Se vuoi testare il sito, commenta le righe sotto.
-  
-  // if (!req.isAuthenticated()) {
-  //   return res.status(401).json({ message: "Unauthorized" });
-  // }
-  
+  // In questa versione, non controlliamo se l'utente è loggato.
+  // Lasciamo passare tutti per far funzionare il sito.
   return next();
 };
