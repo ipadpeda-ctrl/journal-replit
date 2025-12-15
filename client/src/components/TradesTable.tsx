@@ -18,8 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ArrowUp, ArrowDown, Pencil, Trash2, Search, Filter } from "lucide-react";
-import ConfluenceTag from "./ConfluenceTag";
+import { ArrowUp, ArrowDown, Pencil, Trash2, Search } from "lucide-react";
 
 export type TradeResult = "target" | "stop_loss" | "breakeven" | "parziale" | "non_fillato";
 
@@ -52,12 +51,14 @@ export default function TradesTable({ trades, onEdit, onDelete, onRowClick }: Tr
   const [filterPair, setFilterPair] = useState<string>("all");
   const [filterResult, setFilterResult] = useState<string>("all");
 
-  const uniquePairs = Array.from(new Set(trades.map((t) => t.pair)));
+  // FIX: Filtro le stringhe vuote per evitare il crash del componente Select
+  const uniquePairs = Array.from(new Set(trades.map((t) => t.pair)))
+    .filter(pair => pair && pair.trim() !== "");
 
   const filteredTrades = trades.filter((trade) => {
     const matchesSearch =
-      trade.pair.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      trade.emotion.toLowerCase().includes(searchTerm.toLowerCase());
+      (trade.pair || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (trade.emotion || "").toLowerCase().includes(searchTerm.toLowerCase());
     const matchesPair = filterPair === "all" || trade.pair === filterPair;
     const matchesResult = filterResult === "all" || trade.result === filterResult;
     return matchesSearch && matchesPair && matchesResult;
@@ -75,6 +76,8 @@ export default function TradesTable({ trades, onEdit, onDelete, onRowClick }: Tr
         return <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">Parziale</Badge>;
       case "non_fillato":
         return <Badge className="bg-gray-500/20 text-gray-400 border-gray-500/30">Non Fillato</Badge>;
+      default:
+        return <Badge className="bg-gray-500/20 text-gray-400">N/A</Badge>;
     }
   };
 
@@ -169,14 +172,14 @@ export default function TradesTable({ trades, onEdit, onDelete, onRowClick }: Tr
                       {trade.direction === "long" ? "Long" : "Short"}
                     </span>
                   </TableCell>
-                  <TableCell className="text-right font-mono">{trade.target.toFixed(2)}</TableCell>
-                  <TableCell className="text-right font-mono">{trade.stopLoss.toFixed(2)}</TableCell>
+                  <TableCell className="text-right font-mono">{trade.target?.toFixed(2)}</TableCell>
+                  <TableCell className="text-right font-mono">{trade.stopLoss?.toFixed(2)}</TableCell>
                   <TableCell>{getResultBadge(trade.result)}</TableCell>
                   <TableCell className="text-sm">{trade.emotion}</TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
-                      <span className="text-xs text-emerald-500">+{trade.confluencesPro.length}</span>
-                      <span className="text-xs text-red-500">-{trade.confluencesContro.length}</span>
+                      <span className="text-xs text-emerald-500">+{trade.confluencesPro?.length || 0}</span>
+                      <span className="text-xs text-red-500">-{trade.confluencesContro?.length || 0}</span>
                     </div>
                   </TableCell>
                   <TableCell>
