@@ -12,7 +12,7 @@ import {
   type InsertDiary,
   type Goal,
   type InsertGoal,
-} from "@shared/schema";
+} from "../shared/schema";
 import { db, pool } from "./db"; // Importiamo anche 'pool' per le sessioni
 import { eq, desc, and, sql } from "drizzle-orm";
 import session from "express-session";
