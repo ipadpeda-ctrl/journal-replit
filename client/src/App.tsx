@@ -7,8 +7,8 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { useAuth } from "@/hooks/useAuth";
 import Dashboard from "@/pages/Dashboard";
 import AdminDashboard from "@/pages/AdminDashboard";
-// import Landing from "@/pages/Landing"; // Non serve più per ora
-import AuthPage from "@/pages/AuthPage"; // <--- NUOVA IMPORTAZIONE
+import Landing from "@/pages/Landing"; // <--- Landing è tornata!
+import AuthPage from "@/pages/AuthPage";
 import NotFound from "@/pages/not-found";
 import { Loader2 } from "lucide-react";
 
@@ -25,16 +25,20 @@ function Router() {
 
   return (
     <Switch>
+      {/* Se NON sei autenticato */}
       {!isAuthenticated ? (
-        // Se non sei loggato, ti mostro la pagina di Login/Registrazione
-        <Route path="/" component={AuthPage} />
-      ) : (
-        // Se sei loggato, vedi la Dashboard
         <>
-          <Route path="/" component={Dashboard} />
+          <Route path="/" component={Landing} />     {/* Home = Landing Page */}
+          <Route path="/auth" component={AuthPage} /> {/* Login = Pagina dedicata */}
+        </>
+      ) : (
+        /* Se SEI autenticato */
+        <>
+          <Route path="/" component={Dashboard} />   {/* Home = Dashboard */}
           <Route path="/admin" component={AdminDashboard} />
         </>
       )}
+      {/* Per tutte le altre pagine non trovate */}
       <Route component={NotFound} />
     </Switch>
   );
