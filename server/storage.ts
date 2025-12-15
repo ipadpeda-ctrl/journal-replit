@@ -4,6 +4,7 @@ import {
   tradingDiary,
   goals,
   type User,
+  type InsertUser, // Aggiunto questo tipo per la registrazione
   type UpsertUser,
   type Trade,
   type InsertTrade,
@@ -16,44 +17,64 @@ import { db } from "./db";
 import { eq, desc, and, sql } from "drizzle-orm";
 
 export interface IStorage {
-  // User operations (mandatory for Replit Auth)
-  getUser(id: string): Promise<User | undefined>;
+  // User operations
+  getUser(id: number): Promise<User | undefined>;
+  getUserByUsername(username: string): Promise<User | undefined>; // <--- NUOVO
+  createUser(user: InsertUser): Promise<User>; // <--- NUOVO
   upsertUser(user: UpsertUser): Promise<User>;
   getAllUsers(): Promise<User[]>;
-  updateUserRole(id: string, role: string): Promise<User | undefined>;
-  updateUserCapital(id: string, initialCapital: number): Promise<User | undefined>;
+  updateUserRole(id: number, role: string): Promise<User | undefined>;
+  updateUserCapital(id: number, initialCapital: number): Promise<User | undefined>;
   isFirstUser(): Promise<boolean>;
 
   // Trade operations
-  getTradesByUser(userId: string): Promise<Trade[]>;
+  getTradesByUser(userId: number): Promise<Trade[]>;
   getAllTrades(): Promise<Trade[]>;
   createTrade(trade: InsertTrade): Promise<Trade>;
-  updateTrade(id: number, userId: string, trade: Partial<InsertTrade>): Promise<Trade | undefined>;
-  deleteTrade(id: number, userId: string): Promise<boolean>;
+  updateTrade(id: number, userId: number, trade: Partial<InsertTrade>): Promise<Trade | undefined>;
+  deleteTrade(id: number, userId: number): Promise<boolean>;
   getTradeById(id: number): Promise<Trade | undefined>;
 
   // Diary operations
-  getDiaryByUser(userId: string): Promise<TradingDiary[]>;
-  getDiaryByDate(userId: string, date: string): Promise<TradingDiary | undefined>;
+  getDiaryByUser(userId: number): Promise<TradingDiary[]>;
+  getDiaryByDate(userId: number, date: string): Promise<TradingDiary | undefined>;
   upsertDiary(diary: InsertDiary): Promise<TradingDiary>;
-  deleteDiary(id: number, userId: string): Promise<boolean>;
+  deleteDiary(id: number, userId: number): Promise<boolean>;
 
   // Goal operations
-  getGoalsByUser(userId: string): Promise<Goal[]>;
-  getGoalByMonth(userId: string, month: number, year: number): Promise<Goal | undefined>;
+  getGoalsByUser(userId: number): Promise<Goal[]>;
+  getGoalByMonth(userId: number, month: number, year: number): Promise<Goal | undefined>;
   upsertGoal(goal: InsertGoal): Promise<Goal>;
-  deleteGoal(id: number, userId: string): Promise<boolean>;
+  deleteGoal(id: number, userId: number): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
   // User operations
-  async getUser(id: string): Promise<User | undefined> {
+  async getUser(id: number): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;
   }
 
+  // <--- FUNZIONE AGGIUNTA PER IL LOGIN
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
+  }
+
+  // <--- FUNZIONE AGGIUNTA PER LA REGISTRAZIONE
+  async createUser(insertUser: InsertUser): Promise<User> {
+    // Controlla se è il primo utente del sistema (diventa super_admin)
+    const isFirst = await this.isFirstUser();
+    const role = isFirst ? "super_admin" : (insertUser.role || "user");
+
+    const [user] = await db
+      .insert(users)
+      .values({ ...insertUser, role })
+      .returning();
+    return user;
+  }
+
   async upsertUser(userData: UpsertUser): Promise<User> {
-    // Check if this is the first user (becomes super_admin)
     const isFirst = await this.isFirstUser();
     const role = isFirst ? "super_admin" : (userData.role || "user");
 
@@ -63,6 +84,7 @@ export class DatabaseStorage implements IStorage {
       .onConflictDoUpdate({
         target: users.id,
         set: {
+          username: userData.username,
           email: userData.email,
           firstName: userData.firstName,
           lastName: userData.lastName,
@@ -78,7 +100,7 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(users).orderBy(desc(users.createdAt));
   }
 
-  async updateUserRole(id: string, role: string): Promise<User | undefined> {
+  async updateUserRole(id: number, role: string): Promise<User | undefined> {
     const [user] = await db
       .update(users)
       .set({ role, updatedAt: new Date() })
@@ -87,7 +109,7 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async updateUserCapital(id: string, initialCapital: number): Promise<User | undefined> {
+  async updateUserCapital(id: number, initialCapital: number): Promise<User | undefined> {
     const [user] = await db
       .update(users)
       .set({ initialCapital, updatedAt: new Date() })
@@ -98,11 +120,11 @@ export class DatabaseStorage implements IStorage {
 
   async isFirstUser(): Promise<boolean> {
     const result = await db.select({ count: sql<number>`count(*)` }).from(users);
-    return result[0].count === 0;
+    return Number(result[0].count) === 0;
   }
 
   // Trade operations
-  async getTradesByUser(userId: string): Promise<Trade[]> {
+  async getTradesByUser(userId: number): Promise<Trade[]> {
     return await db
       .select()
       .from(trades)
@@ -122,7 +144,7 @@ export class DatabaseStorage implements IStorage {
     return newTrade;
   }
 
-  async updateTrade(id: number, userId: string, trade: Partial<InsertTrade>): Promise<Trade | undefined> {
+  async updateTrade(id: number, userId: number, trade: Partial<InsertTrade>): Promise<Trade | undefined> {
     const [updated] = await db
       .update(trades)
       .set(trade)
@@ -131,7 +153,7 @@ export class DatabaseStorage implements IStorage {
     return updated;
   }
 
-  async deleteTrade(id: number, userId: string): Promise<boolean> {
+  async deleteTrade(id: number, userId: number): Promise<boolean> {
     const result = await db
       .delete(trades)
       .where(and(eq(trades.id, id), eq(trades.userId, userId)))
@@ -145,7 +167,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Diary operations
-  async getDiaryByUser(userId: string): Promise<TradingDiary[]> {
+  async getDiaryByUser(userId: number): Promise<TradingDiary[]> {
     return await db
       .select()
       .from(tradingDiary)
@@ -153,7 +175,7 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(tradingDiary.date));
   }
 
-  async getDiaryByDate(userId: string, date: string): Promise<TradingDiary | undefined> {
+  async getDiaryByDate(userId: number, date: string): Promise<TradingDiary | undefined> {
     const [diary] = await db
       .select()
       .from(tradingDiary)
@@ -175,7 +197,7 @@ export class DatabaseStorage implements IStorage {
     return newDiary;
   }
 
-  async deleteDiary(id: number, userId: string): Promise<boolean> {
+  async deleteDiary(id: number, userId: number): Promise<boolean> {
     const result = await db
       .delete(tradingDiary)
       .where(and(eq(tradingDiary.id, id), eq(tradingDiary.userId, userId)))
@@ -184,7 +206,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Goal operations
-  async getGoalsByUser(userId: string): Promise<Goal[]> {
+  async getGoalsByUser(userId: number): Promise<Goal[]> {
     return await db
       .select()
       .from(goals)
@@ -192,7 +214,7 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(goals.year), desc(goals.month));
   }
 
-  async getGoalByMonth(userId: string, month: number, year: number): Promise<Goal | undefined> {
+  async getGoalByMonth(userId: number, month: number, year: number): Promise<Goal | undefined> {
     const [goal] = await db
       .select()
       .from(goals)
@@ -218,7 +240,7 @@ export class DatabaseStorage implements IStorage {
     return newGoal;
   }
 
-  async deleteGoal(id: number, userId: string): Promise<boolean> {
+  async deleteGoal(id: number, userId: number): Promise<boolean> {
     const result = await db
       .delete(goals)
       .where(and(eq(goals.id, id), eq(goals.userId, userId)))
