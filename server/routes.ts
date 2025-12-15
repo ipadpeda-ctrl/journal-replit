@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth, isAuthenticated } from "./replitAuth"; // Usa il nostro sistema personalizzato
 import { storage } from "./storage";
-import { insertTradeSchema, insertDiarySchema, insertGoalSchema } from "@shared/schema";
+import { insertTradeSchema, insertDiarySchema, insertGoalSchema } from "../shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Configura l'autenticazione (sessioni, login, register)
