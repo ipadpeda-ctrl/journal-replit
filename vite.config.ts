@@ -1,22 +1,21 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
-import { fileURLToPath } from "url";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// Usiamo process.cwd() per trovare la cartella corrente in modo sicuro
+const root = process.cwd();
 
 export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "client", "src"),
-      "@shared": path.resolve(__dirname, "shared"),
+      "@": path.resolve(root, "client", "src"),
+      "@shared": path.resolve(root, "shared"),
     },
   },
-  root: path.resolve(__dirname, "client"),
+  root: "client",
   build: {
-    outDir: path.resolve(__dirname, "dist/public"), // Percorso assoluto sicuro
+    outDir: path.resolve(root, "dist/public"),
     emptyOutDir: true,
   },
 });
