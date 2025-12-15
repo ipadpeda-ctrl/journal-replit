@@ -61,7 +61,7 @@ export class DatabaseStorage implements IStorage {
     // Inizializziamo lo store delle sessioni nel DB
     this.sessionStore = new PostgresSessionStore({
       pool,
-      createTableIfMissing: true,
+      createTableIfMissing: false,
     });
   }
 
