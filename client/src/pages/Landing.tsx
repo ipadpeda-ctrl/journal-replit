@@ -26,7 +26,7 @@ export default function Landing() {
             Registra le tue operazioni, analizza le tue performance e sviluppa strategie vincenti con il nostro diario di trading professionale.
           </p>
           <Button size="lg" asChild data-testid="button-cta">
-            <a href="/api/login">Inizia Ora</a>
+            <a href="/auth">Inizia Ora</a>
           </Button>
         </div>
 
