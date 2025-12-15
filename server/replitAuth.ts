@@ -116,8 +116,8 @@ export function setupAuth(app: Express) {
   });
 }
 
-// QUESTA È LA FUNZIONE CHE MANCAVA!
-export function isAuthenticated(req: Request,HZ: Response, next: NextFunction) {
+// CORREZIONE QUI: req, res, next (prima c'era un errore HZ)
+export function isAuthenticated(req: Request, res: Response, next: NextFunction) {
   if (req.isAuthenticated()) {
     return next();
   }
