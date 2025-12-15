@@ -8,7 +8,7 @@ const __dirname = path.dirname(__filename);
 
 async function main() {
   console.log("--> Inizio Build Client (Frontend)...");
-  // Costruisce il frontend usando la configurazione corretta di vite.config.ts
+  // Costruisce il frontend
   await build({
     configFile: path.resolve(__dirname, "../vite.config.ts"),
   });
@@ -21,7 +21,10 @@ async function main() {
     platform: "node",
     format: "cjs",
     outfile: "dist/index.cjs",
-    external: ["fsevents", "pg-native"], // Evita errori con dipendenze opzionali
+    // QUESTA è la modifica fondamentale:
+    packages: "external", 
+    // Dice a esbuild di non includere le librerie nel file finale
+    // ma di lasciarle come "require(...)" che Node.js sa gestire.
   });
 
   console.log("--> Build Completata con successo!");
