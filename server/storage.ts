@@ -4,7 +4,7 @@ import {
   tradingDiary,
   goals,
   type User,
-  type InsertUser, // Aggiunto questo tipo per la registrazione
+  type InsertUser,
   type UpsertUser,
   type Trade,
   type InsertTrade,
@@ -13,14 +13,20 @@ import {
   type Goal,
   type InsertGoal,
 } from "@shared/schema";
-import { db } from "./db";
+import { db, pool } from "./db"; // Importiamo anche 'pool' per le sessioni
 import { eq, desc, and, sql } from "drizzle-orm";
+import session from "express-session";
+import connectPg from "connect-pg-simple";
+
+const PostgresSessionStore = connectPg(session);
 
 export interface IStorage {
+  sessionStore: session.Store; // Proprietà necessaria per le sessioni
+
   // User operations
   getUser(id: number): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>; // <--- NUOVO
-  createUser(user: InsertUser): Promise<User>; // <--- NUOVO
+  getUserByUsername(username: string): Promise<User | undefined>;
+  createUser(user: InsertUser): Promise<User>;
   upsertUser(user: UpsertUser): Promise<User>;
   getAllUsers(): Promise<User[]>;
   updateUserRole(id: number, role: string): Promise<User | undefined>;
@@ -49,21 +55,28 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  sessionStore: session.Store;
+
+  constructor() {
+    // Inizializziamo lo store delle sessioni nel DB
+    this.sessionStore = new PostgresSessionStore({
+      pool,
+      createTableIfMissing: true,
+    });
+  }
+
   // User operations
   async getUser(id: number): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;
   }
 
-  // <--- FUNZIONE AGGIUNTA PER IL LOGIN
   async getUserByUsername(username: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.username, username));
     return user;
   }
 
-  // <--- FUNZIONE AGGIUNTA PER LA REGISTRAZIONE
   async createUser(insertUser: InsertUser): Promise<User> {
-    // Controlla se è il primo utente del sistema (diventa super_admin)
     const isFirst = await this.isFirstUser();
     const role = isFirst ? "super_admin" : (insertUser.role || "user");
 
@@ -78,9 +91,19 @@ export class DatabaseStorage implements IStorage {
     const isFirst = await this.isFirstUser();
     const role = isFirst ? "super_admin" : (userData.role || "user");
 
+    // Fix per i tipi: assicuriamoci che username e password esistano se è un insert
+    // Se è un update, onConflictDoUpdate gestirà i campi parziali
+    const valuesToInsert: any = {
+        ...userData,
+        role,
+        // Valori dummy per soddisfare TypeScript se mancano in userData (verranno sovrascritti o ignorati in update)
+        username: userData.username || "",
+        password: userData.password || "",
+    };
+
     const [user] = await db
       .insert(users)
-      .values({ ...userData, role })
+      .values(valuesToInsert)
       .onConflictDoUpdate({
         target: users.id,
         set: {
