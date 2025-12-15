@@ -1,9 +1,9 @@
-import { type Express } from "express";
+import express, { type Express } from "express";
+import fs from "fs";
+import path from "path";
 import { createServer as createViteServer, createLogger } from "vite";
 import { type Server } from "http";
 import viteConfig from "../vite.config";
-import fs from "fs";
-import path from "path";
 import { nanoid } from "nanoid";
 
 const viteLogger = createLogger();
@@ -35,9 +35,10 @@ export async function setupVite(server: Server, app: Express) {
     const url = req.originalUrl;
 
     try {
+      // MODIFICA FONDAMENTALE: Usiamo process.cwd() invece di import.meta
+      // Questo funziona sempre, sia in dev che su Render
       const clientTemplate = path.resolve(
-        import.meta.dirname,
-        "..",
+        process.cwd(),
         "client",
         "index.html",
       );
@@ -54,5 +55,25 @@ export async function setupVite(server: Server, app: Express) {
       vite.ssrFixStacktrace(e as Error);
       next(e);
     }
+  });
+}
+
+// QUESTA FUNZIONE MANCAVA ED È ESSENZIALE PER RENDER
+export function serveStatic(app: Express) {
+  // Cerca i file costruiti nella cartella dist/public
+  const distPath = path.resolve(process.cwd(), "dist", "public");
+
+  if (!fs.existsSync(distPath)) {
+    throw new Error(
+      `Could not find the build directory: ${distPath}, make sure to build the client first`,
+    );
+  }
+
+  // Serve i file statici (immagini, css, js)
+  app.use(express.static(distPath));
+
+  // Per qualsiasi altra richiesta, restituisci index.html (per il routing di React)
+  app.use("*", (_req, res) => {
+    res.sendFile(path.resolve(distPath, "index.html"));
   });
 }
