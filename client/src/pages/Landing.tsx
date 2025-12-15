@@ -12,7 +12,7 @@ export default function Landing() {
             <span className="font-semibold text-lg">Trading Journal</span>
           </div>
           <Button asChild data-testid="button-login">
-            <a href="/api/login">Accedi</a>
+            <a href="/auth">Accedi</a>
           </Button>
         </div>
       </header>
