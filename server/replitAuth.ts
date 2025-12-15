@@ -23,18 +23,22 @@ async function comparePasswords(supplied: string, stored: string) {
 }
 
 export function setupAuth(app: Express) {
+  // FIX: Usiamo direttamente process.env.NODE_ENV invece di app.get("env")
+  // Questo evita l'errore "app.get is not a function" in produzione
+  const isProduction = process.env.NODE_ENV === "production";
+
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || "chiave-segreta-fallback",
     resave: false,
     saveUninitialized: false,
     store: storage.sessionStore,
     cookie: {
-      secure: app.get("env") === "production",
+      secure: isProduction, // Uso della variabile sicura
       maxAge: 1000 * 60 * 60 * 24 * 7, // 1 settimana
     },
   };
 
-  if (app.get("env") === "production") {
+  if (isProduction) {
     app.set("trust proxy", 1);
   }
 
@@ -116,7 +120,6 @@ export function setupAuth(app: Express) {
   });
 }
 
-// CORREZIONE QUI: req, res, next (prima c'era un errore HZ)
 export function isAuthenticated(req: Request, res: Response, next: NextFunction) {
   if (req.isAuthenticated()) {
     return next();
