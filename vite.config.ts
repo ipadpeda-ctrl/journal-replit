@@ -14,9 +14,9 @@ export default defineConfig({
       "@shared": path.resolve(__dirname, "shared"),
     },
   },
-  root: "client",
+  root: path.resolve(__dirname, "client"),
   build: {
-    outDir: "../dist/public", // <--- QUESTA è la modifica fondamentale
+    outDir: path.resolve(__dirname, "dist/public"), // Percorso assoluto sicuro
     emptyOutDir: true,
   },
 });
