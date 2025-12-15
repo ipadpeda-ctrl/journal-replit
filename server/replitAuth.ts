@@ -23,9 +23,10 @@ async function comparePasswords(supplied: string, stored: string) {
 }
 
 export function setupAuth(app: Express) {
-  // FIX: Usiamo direttamente process.env.NODE_ENV invece di app.get("env")
-  // Questo evita l'errore "app.get is not a function" in produzione
   const isProduction = process.env.NODE_ENV === "production";
+
+  // ABBIAMO RIMOSSO LA RIGA "app.set" CHE CAUSAVA IL CRASH.
+  // Il resto della configurazione rimane identico e sicuro.
 
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || "chiave-segreta-fallback",
@@ -33,14 +34,10 @@ export function setupAuth(app: Express) {
     saveUninitialized: false,
     store: storage.sessionStore,
     cookie: {
-      secure: isProduction, // Uso della variabile sicura
+      secure: isProduction, 
       maxAge: 1000 * 60 * 60 * 24 * 7, // 1 settimana
     },
   };
-
-  if (isProduction) {
-    app.set("trust proxy", 1);
-  }
 
   app.use(session(sessionSettings));
   app.use(passport.initialize());
