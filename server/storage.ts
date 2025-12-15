@@ -12,8 +12,8 @@ import {
   type InsertDiary,
   type Goal,
   type InsertGoal,
-} from "../shared/schema";
-import { db, pool } from "./db"; // Importiamo anche 'pool' per le sessioni
+} from "../shared/schema"; // Percorso relativo (IMPORTANTE)
+import { db, pool } from "./db";
 import { eq, desc, and, sql } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
@@ -21,7 +21,7 @@ import connectPg from "connect-pg-simple";
 const PostgresSessionStore = connectPg(session);
 
 export interface IStorage {
-  sessionStore: session.Store; // Proprietà necessaria per le sessioni
+  sessionStore: session.Store;
 
   // User operations
   getUser(id: number): Promise<User | undefined>;
@@ -58,10 +58,10 @@ export class DatabaseStorage implements IStorage {
   sessionStore: session.Store;
 
   constructor() {
-    // Inizializziamo lo store delle sessioni nel DB
     this.sessionStore = new PostgresSessionStore({
       pool,
-      createTableIfMissing: false,
+      createTableIfMissing: false, // Non crearla, esiste già
+      tableName: "sessions",       // <--- ECCO LA SOLUZIONE (Plurale!)
     });
   }
 
@@ -91,12 +91,9 @@ export class DatabaseStorage implements IStorage {
     const isFirst = await this.isFirstUser();
     const role = isFirst ? "super_admin" : (userData.role || "user");
 
-    // Fix per i tipi: assicuriamoci che username e password esistano se è un insert
-    // Se è un update, onConflictDoUpdate gestirà i campi parziali
     const valuesToInsert: any = {
         ...userData,
         role,
-        // Valori dummy per soddisfare TypeScript se mancano in userData (verranno sovrascritti o ignorati in update)
         username: userData.username || "",
         password: userData.password || "",
     };
