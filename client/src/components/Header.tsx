@@ -7,9 +7,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Moon, Sun, TrendingUp, LogOut, Shield, User as UserIcon } from "lucide-react";
+import { Moon, Sun, TrendingUp, LogOut, Shield } from "lucide-react";
 import { useTheme } from "./ThemeProvider";
 import { useAuth } from "@/hooks/useAuth";
+import { apiRequest, queryClient } from "@/lib/queryClient"; // Import necessario
 
 type Tab = "new-entry" | "operations" | "calendario" | "statistiche" | "diary" | "goals" | "settings" | "admin";
 
@@ -43,6 +44,24 @@ export default function Header({ activeTab, onTabChange }: HeaderProps) {
     return "U";
   };
 
+  // --- NUOVA FUNZIONE DI LOGOUT SICURO ---
+  const handleLogout = async () => {
+    try {
+      // 1. Chiede al server di chiudere la sessione (POST request)
+      await apiRequest("POST", "/api/logout");
+      
+      // 2. Pulisce la cache dei dati utente
+      await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+
+      // 3. Ricarica la pagina per tornare alla schermata di login pulita
+      window.location.href = "/";
+    } catch (error) {
+      console.error("Errore durante il logout:", error);
+      // Mal che vada, ricarica comunque
+      window.location.href = "/";
+    }
+  };
+
   return (
     <header className="sticky top-0 z-50 bg-background border-b h-16 flex items-center px-4 gap-6">
       <div className="flex items-center gap-2">
@@ -50,12 +69,12 @@ export default function Header({ activeTab, onTabChange }: HeaderProps) {
         <span className="font-semibold text-lg">Trading Journal</span>
       </div>
       
-      <nav className="flex-1 flex items-center gap-1">
+      <nav className="flex-1 flex items-center gap-1 overflow-x-auto">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => onTabChange(tab.id)}
-            className={`px-4 py-2 text-sm font-medium transition-colors relative ${
+            className={`px-4 py-2 text-sm font-medium transition-colors relative whitespace-nowrap ${
               activeTab === tab.id
                 ? "text-foreground"
                 : "text-muted-foreground hover-elevate"
@@ -71,52 +90,53 @@ export default function Header({ activeTab, onTabChange }: HeaderProps) {
         ))}
       </nav>
 
-      <Button
-        size="icon"
-        variant="ghost"
-        onClick={toggleTheme}
-        data-testid="button-theme-toggle"
-      >
-        {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-      </Button>
+      <div className="flex items-center gap-2">
+        <Button
+          size="icon"
+          variant="ghost"
+          onClick={toggleTheme}
+          data-testid="button-theme-toggle"
+        >
+          {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+        </Button>
 
-      {user && (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="relative h-9 w-9 rounded-full" data-testid="button-user-menu">
-              <Avatar className="h-9 w-9">
-                <AvatarImage src={user.profileImageUrl || undefined} alt={user.firstName || "User"} />
-                <AvatarFallback>{getInitials()}</AvatarFallback>
-              </Avatar>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <div className="flex items-center justify-start gap-2 p-2">
-              <div className="flex flex-col space-y-1 leading-none">
-                {user.firstName && (
-                  <p className="font-medium" data-testid="text-user-name">{user.firstName} {user.lastName}</p>
-                )}
-                {user.email && (
-                  <p className="text-xs text-muted-foreground" data-testid="text-user-email">{user.email}</p>
-                )}
-                {user.role && user.role !== "user" && (
-                  <p className="text-xs text-chart-1" data-testid="text-user-role">
-                    <Shield className="w-3 h-3 inline mr-1" />
-                    {user.role === "super_admin" ? "Super Admin" : "Admin"}
-                  </p>
-                )}
+        {user && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="relative h-9 w-9 rounded-full" data-testid="button-user-menu">
+                <Avatar className="h-9 w-9">
+                  <AvatarImage src={user.profileImageUrl || undefined} alt={user.firstName || "User"} />
+                  <AvatarFallback>{getInitials()}</AvatarFallback>
+                </Avatar>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <div className="flex items-center justify-start gap-2 p-2">
+                <div className="flex flex-col space-y-1 leading-none">
+                  {user.firstName && (
+                    <p className="font-medium" data-testid="text-user-name">{user.firstName} {user.lastName}</p>
+                  )}
+                  {user.email && (
+                    <p className="text-xs text-muted-foreground" data-testid="text-user-email">{user.email}</p>
+                  )}
+                  {user.role && user.role !== "user" && (
+                    <p className="text-xs text-chart-1" data-testid="text-user-role">
+                      <Shield className="w-3 h-3 inline mr-1" />
+                      {user.role === "super_admin" ? "Super Admin" : "Admin"}
+                    </p>
+                  )}
+                </div>
               </div>
-            </div>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <a href="/api/logout" className="cursor-pointer" data-testid="button-logout">
-                <LogOut className="mr-2 h-4 w-4" />
-                Esci
-              </a>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      )}
+              <DropdownMenuSeparator />
+              {/* MODIFICATO: Usa onClick invece di href */}
+              <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-red-500 focus:text-red-500" data-testid="button-logout">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Esci
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+      </div>
     </header>
   );
 }
