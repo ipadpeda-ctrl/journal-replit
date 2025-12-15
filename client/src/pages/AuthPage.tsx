@@ -25,21 +25,18 @@ export default function AuthPage() {
         body: JSON.stringify({ username, password }),
       });
 
+      const data = await res.json();
+
       if (!res.ok) {
-        const data = await res.json(); // Legge il messaggio di errore dal server
         throw new Error(data.message || "Errore durante l'operazione");
       }
 
-      // Se il login/registrazione va a buon fine:
       toast({
         title: "Successo!",
         description: isLogin ? "Benvenuto!" : "Account creato con successo!",
       });
 
-      // 1. Aggiorna lo stato dell'utente ricaricando la query
       await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-      
-      // 2. Reindirizza alla dashboard
       setLocation("/");
       
     } catch (error: any) {
@@ -66,9 +63,10 @@ export default function AuthPage() {
             <input
               type="text"
               required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white" 
               value={username}
               onChange={(e) => setUsername(e.target.value)}
+              placeholder="Inserisci il tuo username"
             />
           </div>
 
@@ -77,16 +75,17 @@ export default function AuthPage() {
             <input
               type="password"
               required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
             />
           </div>
 
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 flex justify-center items-center"
+            className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 flex justify-center items-center font-medium"
           >
             {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : (isLogin ? "Accedi" : "Registrati")}
           </button>
@@ -97,7 +96,7 @@ export default function AuthPage() {
             {isLogin ? "Non hai un account?" : "Hai già un account?"}
             <button
               onClick={() => setIsLogin(!isLogin)}
-              className="ml-2 text-blue-600 hover:text-blue-500 font-medium focus:outline-none"
+              className="ml-2 text-blue-600 hover:text-blue-500 font-medium focus:outline-none underline"
             >
               {isLogin ? "Registrati" : "Accedi"}
             </button>
